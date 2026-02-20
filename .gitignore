@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+.expo/
+web-build/
+
+# Env
+.env
+.env.local
+.dev.vars
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cloudflare
+.wrangler/
+
+# Expo
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+ios/
+android/
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*

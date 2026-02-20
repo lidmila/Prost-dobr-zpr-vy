@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:play.google.com)",
+      "Bash(git -C \"C:\\\\Users\\\\lidmi\\\\Documents\\\\GitHub\\\\Prost-dobr-zpr-vy\" log --oneline -10)",
+      "Bash(git -C \"C:\\\\Users\\\\lidmi\\\\Documents\\\\GitHub\\\\Prost-dobr-zpr-vy\" status)",
+      "WebSearch",
+      "WebFetch(domain:goodnews.eu)",
+      "Bash(git -C \"C:/Users/lidmi/Documents/GitHub/Prost-dobr-zpr-vy\" log --oneline -5)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npm install:*)",
+      "Bash(npx wrangler d1 execute:*)",
+      "Bash(timeout 15 npx wrangler dev:*)",
+      "Bash(curl:*)",
+      "Bash(npx wrangler dev:*)",
+      "Bash(npx expo start:*)",
+      "Bash(npx expo install:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(taskkill:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(netstat:*)",
+      "Bash(EXPO_NO_INTERACTIVE_VERIFICATION=1 npx expo start:*)",
+      "Bash(CI=1 YES=1 npx expo start:*)",
+      "Bash(netsh advfirewall firewall add rule:*)",
+      "Bash(grep:*)",
+      "Bash(ipconfig:*)",
+      "Bash(npx:*)",
+      "WebFetch(domain:www.color-hex.com)",
+      "WebFetch(domain:proste-dobre-zpravy-api.workers.dev)",
+      "Bash(python3:*)",
+      "Bash(node -e:*)",
+      "Bash(pkill:*)",
+      "Bash(where:*)",
+      "Bash(npm run:*)",
+      "Bash(python -m json.tool:*)"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+name = "proste-dobre-zpravy-api"
+main = "src/index.ts"
+compatibility_date = "2024-06-20"
+
+[triggers]
+crons = ["*/30 * * * *"]
+
+[[d1_databases]]
+binding = "ARTICLES_DB"
+database_name = "articles-db"
+database_id = "ac78951a-ce5e-49ea-a5d9-d9703803d512"
+
+[[d1_databases]]
+binding = "INTERNAL_DB"
+database_name = "internal-db"
+database_id = "25e155b3-d6f1-4b9b-baf1-74ec7b97aaa0"
+
+[vars]
+JWT_SECRET = "change-me-in-production"
+LIBRE_TRANSLATE_URL = "https://libretranslate.com"
+
+# AI binding is only available in production (requires Cloudflare auth).
+# In local dev, the filter falls back to keyword-based scoring.
+[env.production]
+[env.production.ai]
+binding = "AI"

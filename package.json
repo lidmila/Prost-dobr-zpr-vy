@@ -1,0 +1,10 @@
+{
+  "name": "proste-dobre-zpravy",
+  "private": true,
+  "workspaces": ["app", "server"],
+  "scripts": {
+    "app:start": "cd app && npx expo start",
+    "server:dev": "cd server && npx wrangler dev",
+    "server:deploy": "cd server && npx wrangler deploy"
+  }
+}
