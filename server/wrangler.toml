@@ -2,8 +2,8 @@ name = "proste-dobre-zpravy-api"
 main = "src/index.ts"
 compatibility_date = "2024-06-20"
 
-[triggers]
-crons = ["*/30 * * * *"]
+#[triggers]
+#crons = ["*/5 * * * *"]
 
 [[d1_databases]]
 binding = "ARTICLES_DB"
@@ -17,10 +17,9 @@ database_id = "25e155b3-d6f1-4b9b-baf1-74ec7b97aaa0"
 
 [vars]
 JWT_SECRET = "change-me-in-production"
-LIBRE_TRANSLATE_URL = "https://libretranslate.com"
+# ANTHROPIC_API_KEY is set via: npx wrangler secret put ANTHROPIC_API_KEY
 
-# AI binding is only available in production (requires Cloudflare auth).
-# In local dev, the filter falls back to keyword-based scoring.
-[env.production]
-[env.production.ai]
-binding = "AI"
+[observability]
+[observability.logs]
+enabled = false
+invocation_logs = true

@@ -11,10 +11,13 @@ articlesRoute.get('/', async (c) => {
     const offset = (page - 1) * limit;
 
     const category = c.req.query('category');
+    const region = c.req.query('region');
+    // Keep backwards compatibility with old language/location params
     const language = c.req.query('language');
     const location = c.req.query('location');
     const search = c.req.query('search');
     const adult = c.req.query('adult') || '0';
+    const timeRange = c.req.query('timeRange');
 
     const conditions: string[] = [];
     const params: unknown[] = [];
@@ -24,14 +27,31 @@ articlesRoute.get('/', async (c) => {
       params.push(category);
     }
 
-    if (language) {
-      conditions.push('language = ?');
-      params.push(language);
-    }
+    if (region) {
+      if (region === 'cz-sk') {
+        conditions.push("language IN ('cs', 'sk') AND location IN ('czech', 'slovak')");
+      } else if (region === 'world') {
+        conditions.push("language = 'en' AND location = 'world'");
+      }
+    } else {
+      // Backwards compatibility
+      if (language) {
+        if (language === 'cz-sk') {
+          conditions.push("language IN ('cs', 'sk')");
+        } else {
+          conditions.push('language = ?');
+          params.push(language);
+        }
+      }
 
-    if (location) {
-      conditions.push('location = ?');
-      params.push(location);
+      if (location) {
+        if (location === 'cz-sk') {
+          conditions.push("location IN ('czech', 'slovak')");
+        } else {
+          conditions.push('location = ?');
+          params.push(location);
+        }
+      }
     }
 
     if (search) {
@@ -42,6 +62,19 @@ articlesRoute.get('/', async (c) => {
 
     if (adult !== '1') {
       conditions.push('is_adult = 0');
+    }
+
+    if (timeRange) {
+      const hoursMap: Record<string, number> = {
+        '24h': 24,
+        '48h': 48,
+        '7d': 168,
+        '30d': 720,
+      };
+      const hours = hoursMap[timeRange];
+      if (hours) {
+        conditions.push(`published_at >= datetime('now', '-${hours} hours')`);
+      }
     }
 
     let sql = 'SELECT * FROM articles';

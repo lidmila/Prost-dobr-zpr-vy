@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { Env } from '../types';
+import { callClaude } from '../services/claude';
 
 export const translateRoute = new Hono<{ Bindings: Env }>();
 
@@ -15,32 +16,20 @@ translateRoute.post('/', async (c) => {
       return c.json({ error: 'text and targetLang are required' }, 400);
     }
 
-    const body: Record<string, string> = {
-      q: text,
-      target: targetLang,
-    };
-
-    if (sourceLang) {
-      body.source = sourceLang;
-    } else {
-      body.source = 'auto';
+    if (!c.env.ANTHROPIC_API_KEY) {
+      return c.json({ error: 'Translation service is not available in this environment' }, 503);
     }
 
-    const response = await fetch(c.env.LIBRE_TRANSLATE_URL + '/translate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    const source = sourceLang || 'auto-detected language';
+    const prompt = `Translate the following text from ${source} to ${targetLang}. Return only the translated text, nothing else.\n\n${text}`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('LibreTranslate error:', errorText);
-      return c.json({ error: 'Translation service error' }, 502);
+    const translatedText = await callClaude(c.env.ANTHROPIC_API_KEY, prompt);
+
+    if (!translatedText) {
+      return c.json({ error: 'Translation returned empty result' }, 502);
     }
 
-    const data = await response.json<{ translatedText: string }>();
-
-    return c.json({ translatedText: data.translatedText });
+    return c.json({ translatedText });
   } catch (error) {
     console.error('Error translating:', error);
     return c.json({ error: 'Failed to translate text' }, 500);

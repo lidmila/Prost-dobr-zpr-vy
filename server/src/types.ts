@@ -1,9 +1,8 @@
 export interface Env {
   ARTICLES_DB: D1Database;
   INTERNAL_DB: D1Database;
-  AI?: Ai;
+  ANTHROPIC_API_KEY?: string;
   JWT_SECRET: string;
-  LIBRE_TRANSLATE_URL: string;
 }
 
 export interface Article {

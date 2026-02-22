@@ -2,10 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEYS = {
   AUTH_TOKEN: 'auth_token',
-  PREFERRED_LANGUAGE: 'preferred_language',
-  PREFERRED_LOCATION: 'preferred_location',
+  PREFERRED_REGION: 'preferred_region',
   SHOW_ADULT: 'show_adult',
   NOTIFICATION_PREF: 'notification_pref',
+  NOTIFICATIONS_ENABLED: 'notifications_enabled',
 } as const;
 
 export const storage = {
@@ -19,18 +19,26 @@ export const storage = {
     await AsyncStorage.removeItem(KEYS.AUTH_TOKEN);
   },
 
-  async getPreferredLanguage(): Promise<string> {
-    return (await AsyncStorage.getItem(KEYS.PREFERRED_LANGUAGE)) ?? 'all';
-  },
-  async setPreferredLanguage(lang: string): Promise<void> {
-    await AsyncStorage.setItem(KEYS.PREFERRED_LANGUAGE, lang);
-  },
+  async getPreferredRegion(): Promise<string> {
+    // Migrate from old keys if present
+    const region = await AsyncStorage.getItem(KEYS.PREFERRED_REGION);
+    if (region) return region;
 
-  async getPreferredLocation(): Promise<string> {
-    return (await AsyncStorage.getItem(KEYS.PREFERRED_LOCATION)) ?? 'all';
+    // Check old language/location keys for migration
+    const oldLang = await AsyncStorage.getItem('preferred_language');
+    const oldLoc = await AsyncStorage.getItem('preferred_location');
+    if (oldLang === 'en' || oldLoc === 'world') {
+      await AsyncStorage.setItem(KEYS.PREFERRED_REGION, 'world');
+      return 'world';
+    }
+    if (oldLang === 'cz-sk' || oldLang === 'cs' || oldLang === 'sk' || oldLoc === 'cz-sk' || oldLoc === 'czech' || oldLoc === 'slovak') {
+      await AsyncStorage.setItem(KEYS.PREFERRED_REGION, 'cz-sk');
+      return 'cz-sk';
+    }
+    return 'all';
   },
-  async setPreferredLocation(location: string): Promise<void> {
-    await AsyncStorage.setItem(KEYS.PREFERRED_LOCATION, location);
+  async setPreferredRegion(region: string): Promise<void> {
+    await AsyncStorage.setItem(KEYS.PREFERRED_REGION, region);
   },
 
   async getShowAdult(): Promise<boolean> {
@@ -45,5 +53,12 @@ export const storage = {
   },
   async setNotificationPref(pref: string): Promise<void> {
     await AsyncStorage.setItem(KEYS.NOTIFICATION_PREF, pref);
+  },
+
+  async getNotificationsEnabled(): Promise<boolean> {
+    return (await AsyncStorage.getItem(KEYS.NOTIFICATIONS_ENABLED)) === '1';
+  },
+  async setNotificationsEnabled(enabled: boolean): Promise<void> {
+    await AsyncStorage.setItem(KEYS.NOTIFICATIONS_ENABLED, enabled ? '1' : '0');
   },
 };

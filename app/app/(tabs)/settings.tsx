@@ -7,38 +7,36 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  Linking,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { storage } from '../../services/storage';
 import { useNotifications } from '../../hooks/useNotifications';
-import { LANGUAGES, LOCATIONS } from '../../constants/categories';
+import { REGIONS } from '../../constants/categories';
 import { Spacing, FontSize, BorderRadius } from '../../constants/theme';
+
+const STRIPE_PAYMENT_URL = 'https://buy.stripe.com/6oUaIU2oP3fW2cw000';
 
 export default function SettingsScreen() {
   const { colors, isDark } = useTheme();
   const { registerForPushNotifications } = useNotifications();
 
-  const [preferredLang, setPreferredLang] = useState('all');
-  const [preferredLocation, setPreferredLocation] = useState('all');
+  const [preferredRegion, setPreferredRegion] = useState('all');
   const [showAdult, setShowAdult] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     (async () => {
-      setPreferredLang(await storage.getPreferredLanguage());
-      setPreferredLocation(await storage.getPreferredLocation());
+      setPreferredRegion(await storage.getPreferredRegion());
       setShowAdult(await storage.getShowAdult());
+      setNotificationsEnabled(await storage.getNotificationsEnabled());
     })();
   }, []);
 
-  const onLanguageChange = useCallback(async (lang: string) => {
-    setPreferredLang(lang);
-    await storage.setPreferredLanguage(lang);
-  }, []);
-
-  const onLocationChange = useCallback(async (loc: string) => {
-    setPreferredLocation(loc);
-    await storage.setPreferredLocation(loc);
+  const onRegionChange = useCallback(async (region: string) => {
+    setPreferredRegion(region);
+    await storage.setPreferredRegion(region);
   }, []);
 
   const onAdultToggle = useCallback(async (value: boolean) => {
@@ -66,10 +64,23 @@ export default function SettingsScreen() {
   const onNotificationsToggle = useCallback(
     async (value: boolean) => {
       if (value) {
-        const token = await registerForPushNotifications();
-        setNotificationsEnabled(!!token);
+        try {
+          const token = await registerForPushNotifications();
+          const enabled = !!token;
+          setNotificationsEnabled(enabled);
+          await storage.setNotificationsEnabled(enabled);
+        } catch (err) {
+          setNotificationsEnabled(false);
+          await storage.setNotificationsEnabled(false);
+          Alert.alert(
+            'Notifikace',
+            'Nepodařilo se zapnout notifikace. ' +
+              (err instanceof Error ? err.message : 'Zkuste to znovu.')
+          );
+        }
       } else {
         setNotificationsEnabled(false);
+        await storage.setNotificationsEnabled(false);
       }
     },
     [registerForPushNotifications]
@@ -81,70 +92,33 @@ export default function SettingsScreen() {
       contentContainerStyle={styles.content}
     >
       <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        Preferovaný jazyk
+        Preferovaný region
       </Text>
       <View style={styles.optionRow}>
-        {LANGUAGES.map((lang) => (
+        {REGIONS.map((r) => (
           <Pressable
-            key={lang.key}
+            key={r.key}
             style={[
               styles.pill,
               {
                 backgroundColor:
-                  preferredLang === lang.key ? colors.primary : colors.surface,
+                  preferredRegion === r.key ? colors.primary : colors.surface,
                 borderColor:
-                  preferredLang === lang.key ? colors.primary : colors.border,
+                  preferredRegion === r.key ? colors.primary : colors.border,
               },
             ]}
-            onPress={() => onLanguageChange(lang.key)}
+            onPress={() => onRegionChange(r.key)}
           >
             <Text
               style={[
                 styles.pillText,
                 {
                   color:
-                    preferredLang === lang.key ? '#fff' : colors.text,
+                    preferredRegion === r.key ? '#fff' : colors.text,
                 },
               ]}
             >
-              {lang.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        Preferovaná lokace
-      </Text>
-      <View style={styles.optionRow}>
-        {LOCATIONS.map((loc) => (
-          <Pressable
-            key={loc.key}
-            style={[
-              styles.pill,
-              {
-                backgroundColor:
-                  preferredLocation === loc.key
-                    ? colors.primary
-                    : colors.surface,
-                borderColor:
-                  preferredLocation === loc.key
-                    ? colors.primary
-                    : colors.border,
-              },
-            ]}
-            onPress={() => onLocationChange(loc.key)}
-          >
-            <Text
-              style={[
-                styles.pillText,
-                {
-                  color:
-                    preferredLocation === loc.key ? '#fff' : colors.text,
-                },
-              ]}
-            >
-              {loc.label}
+              {r.label}
             </Text>
           </Pressable>
         ))}
@@ -193,6 +167,27 @@ export default function SettingsScreen() {
         <Text style={[styles.aboutText, { color: colors.textMuted }]}>
           Pozitivní zprávy z českých i světových zdrojů
         </Text>
+      </View>
+
+      <View style={[styles.supportSection, { borderTopColor: colors.border }]}>
+        <Ionicons name="heart-outline" size={28} color={colors.primary} />
+        <Text style={[styles.supportTitle, { color: colors.text }]}>
+          Podpořte tento projekt
+        </Text>
+        <Text style={[styles.supportDescription, { color: colors.textSecondary }]}>
+          Aplikace je zcela zdarma. Pokud se vám líbí, můžete nás podpořit
+          jednorázovým příspěvkem.
+        </Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.supportButton,
+            { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+          ]}
+          onPress={() => Linking.openURL(STRIPE_PAYMENT_URL)}
+        >
+          <Ionicons name="heart" size={18} color="#fff" />
+          <Text style={styles.supportButtonText}>Podpořte nás</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -253,5 +248,36 @@ const styles = StyleSheet.create({
   },
   aboutText: {
     fontSize: FontSize.sm,
+  },
+  supportSection: {
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  supportTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+  },
+  supportDescription: {
+    fontSize: FontSize.sm,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: Spacing.md,
+  },
+  supportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 4,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.xs,
+  },
+  supportButtonText: {
+    color: '#fff',
+    fontSize: FontSize.md,
+    fontWeight: '600',
   },
 });

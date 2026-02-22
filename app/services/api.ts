@@ -42,10 +42,10 @@ interface ArticlesParams {
   page?: number;
   limit?: number;
   category?: string;
-  language?: string;
-  location?: string;
+  region?: string;
   search?: string;
   adult?: 0 | 1;
+  timeRange?: string;
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -69,10 +69,10 @@ export const api = {
     if (params.page) query.set('page', String(params.page));
     if (params.limit) query.set('limit', String(params.limit));
     if (params.category && params.category !== 'all') query.set('category', params.category);
-    if (params.language && params.language !== 'all') query.set('language', params.language);
-    if (params.location && params.location !== 'all') query.set('location', params.location);
+    if (params.region && params.region !== 'all') query.set('region', params.region);
     if (params.search) query.set('search', params.search);
     if (params.adult !== undefined) query.set('adult', String(params.adult));
+    if (params.timeRange) query.set('timeRange', params.timeRange);
     const qs = query.toString();
     return request<ArticlesResponse>(`/articles${qs ? `?${qs}` : ''}`);
   },

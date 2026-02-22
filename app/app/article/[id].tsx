@@ -8,6 +8,8 @@ import {
   Pressable,
   ActivityIndicator,
   Linking,
+  Alert,
+  Share,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +20,8 @@ import AgeGateModal from '../../components/AgeGateModal';
 import TranslateButton from '../../components/TranslateButton';
 import { Spacing, FontSize, BorderRadius } from '../../constants/theme';
 
+const STRIPE_PAYMENT_URL = 'https://buy.stripe.com/6oUaIU2oP3fW2cw000';
+
 export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
@@ -27,9 +31,11 @@ export default function ArticleDetailScreen() {
   const [isSaved, setIsSaved] = useState(false);
   const [showAgeGate, setShowAgeGate] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [translatedTitle, setTranslatedTitle] = useState<string | null>(null);
   const [translatedText, setTranslatedText] = useState<string | null>(null);
   const [translating, setTranslating] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [reported, setReported] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -76,10 +82,14 @@ export default function ArticleDetailScreen() {
     setTranslating(true);
     try {
       const text = article.content || article.description || article.title;
-      const result = await api.translate(text, 'cs', article.language);
-      setTranslatedText(result.translatedText);
+      const [titleResult, contentResult] = await Promise.all([
+        api.translate(article.title, 'cs', article.language),
+        api.translate(text, 'cs', article.language),
+      ]);
+      setTranslatedTitle(titleResult.translatedText);
+      setTranslatedText(contentResult.translatedText);
     } catch {
-      // Translation failed silently
+      Alert.alert('Chyba překladu', 'Překlad se nezdařil. Zkuste to prosím později.');
     } finally {
       setTranslating(false);
     }
@@ -89,6 +99,39 @@ export default function ArticleDetailScreen() {
     if (article?.url) {
       Linking.openURL(article.url);
     }
+  }, [article]);
+
+  const shareArticle = useCallback(async () => {
+    if (!article?.url) return;
+    try {
+      await Share.share({
+        message: article.url,
+      });
+    } catch {
+      // User cancelled or share failed — ignore
+    }
+  }, [article]);
+
+  const reportArticle = useCallback(() => {
+    if (!article) return;
+    const subject = encodeURIComponent(`Nahlášení článku: ${article.id}`);
+    const body = encodeURIComponent(
+      `Tento článek podle mě nepatří do aplikace:\n\n` +
+      `Název: ${article.title}\n` +
+      `Zdroj: ${article.source_name} (${article.source_domain})\n` +
+      `Kategorie: ${article.category}\n` +
+      `Jazyk: ${article.language}\n` +
+      `URL: ${article.url}\n` +
+      `ID: ${article.id}\n` +
+      `Datum publikace: ${article.published_at}\n`
+    );
+    Linking.openURL(`mailto:hello@codewhiskers.app?subject=${subject}&body=${body}`);
+    setReported(true);
+    Alert.alert(
+      'Děkujeme za pomoc!',
+      'Chceme, aby byla aplikace příjemným prostorem plným dobrých zpráv. Na váš podnět se mrkneme do 24 hodin.',
+      [{ text: 'OK' }]
+    );
   }, [article]);
 
   if (loading) {
@@ -154,7 +197,7 @@ export default function ArticleDetailScreen() {
         </View>
 
         <Text style={[styles.title, { color: colors.text }]}>
-          {article.title}
+          {translatedTitle || article.title}
         </Text>
 
         <View style={styles.badges}>
@@ -211,7 +254,45 @@ export default function ArticleDetailScreen() {
               Originál
             </Text>
           </Pressable>
+
+          <Pressable
+            style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={shareArticle}
+          >
+            <Ionicons name="share-outline" size={20} color={colors.text} />
+            <Text style={[styles.actionText, { color: colors.text }]}>
+              Sdílet
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.reportButton, {
+              backgroundColor: reported ? colors.surface : 'transparent',
+              borderColor: colors.border,
+              opacity: reported ? 0.5 : 1,
+            }]}
+            onPress={reportArticle}
+            disabled={reported}
+          >
+            <Ionicons name="flag-outline" size={18} color={colors.textMuted} />
+            <Text style={[styles.reportText, { color: colors.textMuted }]}>
+              {reported ? 'Nahlášeno' : 'Myslím, že tento článek sem nepatří'}
+            </Text>
+          </Pressable>
         </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.supportBanner,
+            { backgroundColor: colors.primaryLight, borderColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+          ]}
+          onPress={() => Linking.openURL(STRIPE_PAYMENT_URL)}
+        >
+          <Ionicons name="heart" size={16} color={colors.primary} />
+          <Text style={[styles.supportBannerText, { color: colors.primary }]}>
+            Líbí se vám, co děláme? Podpořte nás!
+          </Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -293,6 +374,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   actionText: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
+  },
+  reportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.md,
+    borderTopWidth: 1,
+  },
+  reportText: {
+    fontSize: FontSize.xs,
+  },
+  supportBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm + 4,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginTop: Spacing.lg,
+  },
+  supportBannerText: {
     fontSize: FontSize.sm,
     fontWeight: '500',
   },

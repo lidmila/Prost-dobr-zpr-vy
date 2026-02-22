@@ -11,21 +11,20 @@ export const CATEGORIES = [
   { key: 'business', label: 'Byznys', icon: 'briefcase' },
 ] as const;
 
-export const LANGUAGES = [
+export const REGIONS = [
   { key: 'all', label: 'Vše' },
-  { key: 'cs', label: 'Čeština' },
-  { key: 'sk', label: 'Slovenčina' },
-  { key: 'en', label: 'English' },
-  { key: 'de', label: 'Deutsch' },
-] as const;
-
-export const LOCATIONS = [
-  { key: 'all', label: 'Vše' },
-  { key: 'czech', label: 'Česko' },
-  { key: 'slovak', label: 'Slovensko' },
+  { key: 'cz-sk', label: 'CZ & SK' },
   { key: 'world', label: 'Svět' },
 ] as const;
 
+export const TIME_RANGES = [
+  { key: 'all', label: 'Vše' },
+  { key: '24h', label: '24h' },
+  { key: '48h', label: '48h' },
+  { key: '7d', label: '7d' },
+  { key: '30d', label: '30d' },
+] as const;
+
 export type Category = (typeof CATEGORIES)[number]['key'];
-export type Language = (typeof LANGUAGES)[number]['key'];
-export type Location = (typeof LOCATIONS)[number]['key'];
+export type Region = (typeof REGIONS)[number]['key'];
+export type TimeRange = (typeof TIME_RANGES)[number]['key'];

@@ -62,13 +62,13 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   pill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: Spacing.xs + 2,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
   },
   pillText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     fontWeight: '600',
   },
 });

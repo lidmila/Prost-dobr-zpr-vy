@@ -7,14 +7,50 @@
 import type { Env, RSSSource } from '../types';
 import { RSS_SOURCES } from '../data/sources';
 import { filterArticle } from './content-filter';
+import { NAMED_ENTITIES } from '../data/html-entities';
 
-interface ParsedItem {
+export interface ParsedItem {
   title: string;
   link: string;
   description: string;
   content: string | null;
   pubDate: string;
   imageUrl: string | null;
+}
+
+/**
+ * Fix mojibake patterns caused by UTF-8 bytes being decoded as Latin-1/Windows-1252.
+ * E.g. â€™ → ', â€" → —, etc.
+ */
+export function fixMojibake(text: string): string {
+  return text
+    .replace(/\u00e2\u20ac\u2122/g, '\u2019')  // â€™ → '
+    .replace(/\u00e2\u20ac\u2018/g, '\u2018')  // â€˜ → '
+    .replace(/\u00e2\u20ac\u0153/g, '\u201C')  // â€œ → "
+    .replace(/\u00e2\u20ac\u009d/g, '\u201D')  // â€ → "
+    .replace(/\u00e2\u20ac\u201c/g, '\u2014')  // â€" → —
+    .replace(/\u00e2\u20ac\u201d/g, '\u2013')  // â€" → –
+    .replace(/\u00e2\u20ac\u00a6/g, '\u2026')  // â€¦ → …
+    .replace(/\u00c2\u00ab/g, '\u00AB')         // Â« → «
+    .replace(/\u00c2\u00bb/g, '\u00BB')         // Â» → »
+    .replace(/\u00c2\u00a0/g, ' ')              // Â  → (non-breaking space)
+    .replace(/\u00c3\u00a1/g, '\u00E1')         // Ã¡ → á
+    .replace(/\u00c3\u00a9/g, '\u00E9')         // Ã© → é
+    .replace(/\u00c3\u00ad/g, '\u00ED')         // Ã­ → í
+    .replace(/\u00c3\u00b3/g, '\u00F3')         // Ã³ → ó
+    .replace(/\u00c3\u00ba/g, '\u00FA')         // Ãº → ú
+    .replace(/\u00c3\u00bd/g, '\u00FD')         // Ã½ → ý
+    .replace(/\u00c3\u00a8/g, '\u00E8')         // Ã¨ → è
+    .replace(/\u00c3\u00bc/g, '\u00FC')         // Ã¼ → ü
+    .replace(/\u00c5\u0099/g, '\u0159')         // Å™ → ř
+    .replace(/\u00c5\u00be/g, '\u017E')         // Å¾ → ž
+    .replace(/\u00c4\u008d/g, '\u010D')         // Ä → č
+    .replace(/\u00c5\u00a1/g, '\u0161')         // Å¡ → š
+    .replace(/\u00c4\u009b/g, '\u011B')         // Ä› → ě
+    .replace(/\u00c5\u00af/g, '\u016F')         // Å¯ → ů
+    .replace(/\u00c4\u008f/g, '\u010F')         // Ä → ď
+    .replace(/\u00c5\u00a5/g, '\u0165')         // Å¥ → ť
+    .replace(/\u00c5\u0088/g, '\u0148');        // Åˆ → ň
 }
 
 /**
@@ -34,20 +70,25 @@ async function generateArticleId(url: string): Promise<string> {
 /**
  * Decode HTML entities (numeric and named) in a string.
  */
-function decodeHtmlEntities(text: string): string {
-  const named: Record<string, string> = {
-    '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"',
-    '&apos;': "'", '&nbsp;': ' ', '&ndash;': '\u2013', '&mdash;': '\u2014',
-    '&lsquo;': '\u2018', '&rsquo;': '\u2019', '&ldquo;': '\u201C',
-    '&rdquo;': '\u201D', '&hellip;': '\u2026', '&copy;': '\u00A9',
-    '&reg;': '\u00AE', '&trade;': '\u2122', '&euro;': '\u20AC',
-  };
+export function decodeHtmlEntities(text: string): string {
   return text
     // Decode numeric entities: &#8221; &#x201D;
     .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
     .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
-    // Decode named entities
-    .replace(/&[a-zA-Z]+;/g, (entity) => named[entity.toLowerCase()] ?? entity);
+    // Decode named entities (try exact case first, then lowercase fallback)
+    .replace(/&[a-zA-Z]+;/g, (entity) => NAMED_ENTITIES[entity] ?? NAMED_ENTITIES[entity.toLowerCase()] ?? entity);
+}
+
+/** Patterns indicating a tracking pixel, icon, or non-article image */
+const IMAGE_BLACKLIST_PATTERNS = [
+  'pixel', 'tracking', 'logo', 'icon', 'favicon', 'avatar',
+  '1x1', '.svg', 'ads/', 'ad-', 'spacer', 'blank.gif',
+  'transparent', 'beacon', 'analytics', 'doubleclick',
+];
+
+function isValidImageUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  return !IMAGE_BLACKLIST_PATTERNS.some((p) => lower.includes(p));
 }
 
 /**
@@ -64,7 +105,12 @@ function extractTag(xml: string, tag: string): string | null {
   if (!match) return null;
   const content = match[1] ?? match[2] ?? '';
   // Strip HTML tags and decode entities
-  return decodeHtmlEntities(content.replace(/<[^>]*>/g, '').trim());
+  return decodeHtmlEntities(
+    content
+      .replace(/<[^>]*>/g, '') // strip all HTML tags including <p>, <br>, etc.
+      .replace(/\s+/g, ' ')   // collapse whitespace
+      .trim()
+  );
 }
 
 /**
@@ -104,39 +150,44 @@ function extractImage(itemXml: string): string | null {
   const mediaMatch = itemXml.match(
     /<media:content[^>]+url=["']([^"']+)["'][^>]*\/?\s*>/i
   );
-  if (mediaMatch) return mediaMatch[1];
+  if (mediaMatch && isValidImageUrl(mediaMatch[1])) return mediaMatch[1];
 
   // Try enclosure with image type
   const enclosureMatch = itemXml.match(
     /<enclosure[^>]+url=["']([^"']+)["'][^>]*type=["']image\/[^"']*["'][^>]*\/?\s*>/i
   );
-  if (enclosureMatch) return enclosureMatch[1];
+  if (enclosureMatch && isValidImageUrl(enclosureMatch[1])) return enclosureMatch[1];
 
   // Try enclosure url regardless of type (some feeds omit type)
   const enclosureAny = itemXml.match(
     /<enclosure[^>]+url=["']([^"']+)["'][^>]*\/?\s*>/i
   );
-  if (enclosureAny) return enclosureAny[1];
+  if (enclosureAny && isValidImageUrl(enclosureAny[1])) return enclosureAny[1];
 
   // Try media:thumbnail
   const thumbMatch = itemXml.match(
     /<media:thumbnail[^>]+url=["']([^"']+)["'][^>]*\/?\s*>/i
   );
-  if (thumbMatch) return thumbMatch[1];
+  if (thumbMatch && isValidImageUrl(thumbMatch[1])) return thumbMatch[1];
 
   // Try <img> tags embedded in description/content CDATA or HTML
-  const imgMatch = itemXml.match(
-    /<img[^>]+src=["']([^"']+)["'][^>]*\/?>/i
-  );
-  if (imgMatch) {
+  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*\/?>/gi;
+  let imgMatch: RegExpExecArray | null;
+  while ((imgMatch = imgRegex.exec(itemXml)) !== null) {
     const src = imgMatch[1];
-    // Only use if it looks like an actual image URL (not a tracking pixel)
+    if (!isValidImageUrl(src)) continue;
+
+    // Check width — must be ≥200px (reject tracking pixels and tiny icons)
+    const widthMatch = imgMatch[0].match(/width=["']?(\d+)/i);
+    if (widthMatch && parseInt(widthMatch[1], 10) < 200) continue;
+
+    // Accept if it looks like an actual image URL
     if (src.match(/\.(jpe?g|png|webp|gif)/i) || src.includes('/image') || src.includes('/photo') || src.includes('/media')) {
       return src;
     }
-    // Still use it if the img has reasonable width/height attributes (not a 1x1 pixel)
-    const widthMatch = imgMatch[0].match(/width=["']?(\d+)/i);
-    if (!widthMatch || parseInt(widthMatch[1], 10) > 50) {
+
+    // Accept if no width specified (assume decent size) or width ≥200
+    if (!widthMatch || parseInt(widthMatch[1], 10) >= 200) {
       return src;
     }
   }
@@ -147,7 +198,7 @@ function extractImage(itemXml: string): string | null {
 /**
  * Parse RSS XML into an array of items.
  */
-function parseRSSItems(xml: string): ParsedItem[] {
+export function parseRSSItems(xml: string): ParsedItem[] {
   const items: ParsedItem[] = [];
 
   // Match all <item>...</item> blocks
@@ -167,10 +218,10 @@ function parseRSSItems(xml: string): ParsedItem[] {
     if (!title || !link) continue;
 
     items.push({
-      title,
+      title: fixMojibake(title),
       link,
-      description,
-      content,
+      description: fixMojibake(description),
+      content: content ? fixMojibake(content) : null,
       pubDate,
       imageUrl,
     });
@@ -203,10 +254,10 @@ function parseRSSItems(xml: string): ParsedItem[] {
       if (!title || !link) continue;
 
       items.push({
-        title,
+        title: fixMojibake(title),
         link,
-        description,
-        content,
+        description: fixMojibake(description),
+        content: content ? fixMojibake(content) : null,
         pubDate,
         imageUrl,
       });
@@ -224,8 +275,11 @@ async function processSource(source: RSSSource, env: Env): Promise<number> {
 
   const response = await fetch(source.url, {
     headers: {
-      'User-Agent': 'ProstDobreZpravy/1.0 RSS Reader',
-      Accept: 'application/rss+xml, application/xml, text/xml, */*',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      'Accept': 'application/rss+xml, application/xml, text/xml, */*;q=0.8',
+      'Accept-Language': 'cs,sk;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Cache-Control': 'no-cache',
     },
   });
 
@@ -261,10 +315,19 @@ async function processSource(source: RSSSource, env: Env): Promise<number> {
         },
         source.domain,
         source.language,
-        env.AI
+        env.ANTHROPIC_API_KEY
       );
 
-      if (!filterResult.pass) continue;
+      if (filterResult.aiUnavailable) {
+        throw new Error(`AI unavailable: ${filterResult.reason}`);
+      }
+
+      if (!filterResult.pass) {
+        if (source.language === 'en') {
+          console.log(`[FILTER REJECTED] ${source.name}: "${item.title}" (category: ${filterResult.category})`);
+        }
+        continue;
+      }
 
       // Parse publication date, fallback to now
       let publishedAt: string;
@@ -313,42 +376,74 @@ async function processSource(source: RSSSource, env: Env): Promise<number> {
 }
 
 /**
- * Fetch and process all RSS feeds.
- * Sources are processed in batches of 5 to avoid overwhelming.
+ * How many sources to process per invocation.
+ * Cloudflare Workers have a subrequest limit (~1000 on paid, ~50 on free).
+ * Each source uses 1 fetch + N DB queries + N AI calls.
+ * We keep this small to stay well within limits.
+ */
+const SOURCES_PER_RUN = 10;
+
+/**
+ * Get the current batch index from D1 (persists across invocations).
+ */
+async function getBatchIndex(env: Env): Promise<number> {
+  try {
+    const row = await env.INTERNAL_DB.prepare(
+      "SELECT value FROM kv WHERE key = 'feed_batch_index'"
+    ).first<{ value: string }>();
+    return row ? parseInt(row.value, 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Save the next batch index to D1.
+ */
+async function setBatchIndex(env: Env, index: number): Promise<void> {
+  await env.INTERNAL_DB.prepare(
+    "INSERT OR REPLACE INTO kv (key, value) VALUES ('feed_batch_index', ?)"
+  ).bind(String(index)).run();
+}
+
+/**
+ * Fetch and process a slice of RSS feeds.
+ * Each invocation processes SOURCES_PER_RUN sources, then advances the pointer.
+ * With cron running every 30 min, all sources get covered within a few hours.
  */
 export async function fetchAndProcessFeeds(env: Env): Promise<void> {
-  console.log(`Starting feed fetch for ${RSS_SOURCES.length} sources`);
+  const totalSources = RSS_SOURCES.length;
+  const batchIndex = await getBatchIndex(env);
+  const start = batchIndex * SOURCES_PER_RUN;
 
-  const batchSize = 5;
+  // If we've gone past the end, wrap around
+  const effectiveStart = start >= totalSources ? 0 : start;
+  const nextBatchIndex = effectiveStart + SOURCES_PER_RUN >= totalSources ? 0 : (effectiveStart / SOURCES_PER_RUN) + 1;
+
+  const batch = RSS_SOURCES.slice(effectiveStart, effectiveStart + SOURCES_PER_RUN);
+  console.log(`Processing sources ${effectiveStart}–${effectiveStart + batch.length - 1} of ${totalSources} (batch ${batchIndex})`);
+
   let totalInserted = 0;
   let totalErrors = 0;
 
-  for (let i = 0; i < RSS_SOURCES.length; i += batchSize) {
-    const batch = RSS_SOURCES.slice(i, i + batchSize);
-
-    const results = await Promise.allSettled(
-      batch.map((source) => processSource(source, env))
-    );
-
-    for (let j = 0; j < results.length; j++) {
-      const result = results[j];
-      const source = batch[j];
-
-      if (result.status === 'fulfilled') {
-        if (result.value > 0) {
-          console.log(
-            `${source.name}: inserted ${result.value} new articles`
-          );
-        }
-        totalInserted += result.value;
-      } else {
-        totalErrors++;
-        console.error(`${source.name}: failed -`, result.reason);
+  // Process sources sequentially to minimize concurrent subrequests
+  for (const source of batch) {
+    try {
+      const count = await processSource(source, env);
+      if (count > 0) {
+        console.log(`${source.name}: inserted ${count} new articles`);
       }
+      totalInserted += count;
+    } catch (err) {
+      totalErrors++;
+      console.error(`${source.name}: failed -`, err);
     }
   }
 
+  // Save next batch index
+  await setBatchIndex(env, nextBatchIndex);
+
   console.log(
-    `Feed fetch complete: ${totalInserted} new articles, ${totalErrors} source errors`
+    `Batch done: ${totalInserted} new articles, ${totalErrors} errors. Next batch: ${nextBatchIndex}`
   );
 }

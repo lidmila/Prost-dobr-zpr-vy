@@ -3,9 +3,9 @@ import { api, Article } from '../services/api';
 
 interface ArticlesFilters {
   category: string;
-  language: string;
-  location: string;
+  region: string;
   search: string;
+  timeRange: string;
 }
 
 interface UseArticlesReturn {
@@ -26,9 +26,9 @@ export function useArticles(): UseArticlesReturn {
   const [hasMore, setHasMore] = useState(true);
   const [filters, setFilters] = useState<ArticlesFilters>({
     category: 'all',
-    language: 'all',
-    location: 'all',
+    region: 'all',
     search: '',
+    timeRange: 'all',
   });
 
   const pageRef = useRef(1);
@@ -49,9 +49,9 @@ export function useArticles(): UseArticlesReturn {
         page,
         limit: 20,
         category: f.category !== 'all' ? f.category : undefined,
-        language: f.language !== 'all' ? f.language : undefined,
-        location: f.location !== 'all' ? f.location : undefined,
+        region: f.region !== 'all' ? f.region : undefined,
         search: f.search || undefined,
+        timeRange: f.timeRange !== 'all' ? f.timeRange : undefined,
       });
 
       console.log('[useArticles] got', response.articles.length, 'articles, hasMore:', response.hasMore);

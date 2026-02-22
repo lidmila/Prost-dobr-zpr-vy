@@ -12,8 +12,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useArticles } from '../../hooks/useArticles';
 import ArticleCard from '../../components/ArticleCard';
 import CategoryFilter from '../../components/CategoryFilter';
-import LanguageFilter from '../../components/LanguageFilter';
-import LocationToggle from '../../components/LocationToggle';
+import CompactFilters from '../../components/CompactFilters';
 import { Spacing, FontSize } from '../../constants/theme';
 
 export default function FeedScreen() {
@@ -50,15 +49,11 @@ export default function FeedScreen() {
           selected={filters.category}
           onSelect={(v) => setFilter('category', v)}
         />
-        <View style={styles.filterRow}>
-          <LanguageFilter
-            selected={filters.language}
-            onSelect={(v) => setFilter('language', v)}
-          />
-        </View>
-        <LocationToggle
-          selected={filters.location}
-          onSelect={(v) => setFilter('location', v)}
+        <CompactFilters
+          selectedRegion={filters.region}
+          onRegionSelect={(v) => setFilter('region', v)}
+          selectedTimeRange={filters.timeRange}
+          onTimeRangeSelect={(v) => setFilter('timeRange', v)}
         />
       </View>
 
@@ -122,11 +117,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   filters: {
-    paddingTop: Spacing.sm,
-    gap: Spacing.xs,
-  },
-  filterRow: {
-    flexDirection: 'row',
+    paddingTop: Spacing.xs,
+    gap: 0,
   },
   list: {
     padding: Spacing.md,

@@ -49,9 +49,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="favorites"
         options={{
-          title: 'Oblíbené',
+          title: 'Uložené',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="heart-outline" size={size} color={color} />
+            <Ionicons name="download-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="faq"
+        options={{
+          title: 'FAQ',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="help-circle-outline" size={size} color={color} />
           ),
         }}
       />

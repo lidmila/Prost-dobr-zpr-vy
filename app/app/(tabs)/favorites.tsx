@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useOfflineArticles } from '../../hooks/useOfflineArticles';
 import ArticleCard from '../../components/ArticleCard';
@@ -53,11 +54,12 @@ export default function FavoritesScreen() {
             />
           ) : (
             <View style={styles.center}>
+              <Ionicons name="download-outline" size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
               <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                Žádné uložené články
+                Zatím nic uloženého
               </Text>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                Články si můžete uložit pro offline čtení z detailu článku.
+                Články si můžete uložit pro offline čtení tlačítkem "Uložit offline" v detailu článku.
               </Text>
             </View>
           )
