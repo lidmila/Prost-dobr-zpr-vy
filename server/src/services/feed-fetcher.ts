@@ -318,6 +318,7 @@ async function processSource(source: RSSSource, env: Env): Promise<number> {
         env.ANTHROPIC_API_KEY
       );
 
+      // AI unavailable → stop processing this source entirely (propagate up)
       if (filterResult.aiUnavailable) {
         throw new Error(`AI unavailable: ${filterResult.reason}`);
       }
@@ -365,6 +366,10 @@ async function processSource(source: RSSSource, env: Env): Promise<number> {
 
       insertedCount++;
     } catch (err) {
+      // Re-throw AI unavailable errors to stop the entire source
+      if (err instanceof Error && err.message.startsWith('AI unavailable:')) {
+        throw err;
+      }
       console.error(
         `Error processing item "${item.title}" from ${source.name}:`,
         err

@@ -189,6 +189,12 @@ export const HARD_BLOCK_STEMS = [
 
   // ── Sport bez narativu ──
   'výsledky kola', 'tabulka', 'přestup', 'přestupové',
+
+  // ── Akademické papery / korekce ──
+  'author correction:', 'publisher correction:', 'corrigendum:',
+  'erratum:', 'retraction:',
+  'daily briefing:',  'briefing chat:',  // Nature News briefings (not uplifting)
+  'mid-cycle update',
 ];
 
 /**
