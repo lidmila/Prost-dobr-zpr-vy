@@ -43,14 +43,23 @@ async function getTopArticleOfDay(
 }
 
 /**
- * Query all push tokens with daily notification preference.
+ * Query push tokens with daily notification preference, grouped by language.
  */
-async function getDailyTokens(env: Env): Promise<string[]> {
+async function getDailyTokensByLanguage(env: Env): Promise<{ cs: string[]; en: string[] }> {
   const result = await env.INTERNAL_DB.prepare(
-    `SELECT push_token FROM device_tokens WHERE notification_pref = 'daily'`
-  ).all<{ push_token: string }>();
+    `SELECT push_token, COALESCE(language, 'cs') as language FROM device_tokens WHERE notification_pref = 'daily'`
+  ).all<{ push_token: string; language: string }>();
 
-  return result.results.map((row) => row.push_token);
+  const cs: string[] = [];
+  const en: string[] = [];
+  for (const row of result.results) {
+    if (row.language === 'en') {
+      en.push(row.push_token);
+    } else {
+      cs.push(row.push_token);
+    }
+  }
+  return { cs, en };
 }
 
 /**
@@ -96,13 +105,27 @@ async function sendPushBatch(messages: ExpoPushMessage[]): Promise<void> {
 }
 
 /**
+ * Ensure the language column exists in device_tokens.
+ */
+async function ensureLanguageColumn(env: Env): Promise<void> {
+  try {
+    await env.INTERNAL_DB.prepare(
+      `ALTER TABLE device_tokens ADD COLUMN language TEXT DEFAULT 'cs'`
+    ).run();
+  } catch {
+    // Column already exists — ignore
+  }
+}
+
+/**
  * Send daily push notifications to all subscribed devices.
  */
 export async function sendDailyNotifications(env: Env): Promise<void> {
   console.log('Starting daily notification send');
 
   try {
-    // Get the top article of the day
+    await ensureLanguageColumn(env);
+
     const topArticle = await getTopArticleOfDay(env);
 
     if (!topArticle) {
@@ -110,33 +133,39 @@ export async function sendDailyNotifications(env: Env): Promise<void> {
       return;
     }
 
-    // Get all push tokens with daily preference
-    const tokens = await getDailyTokens(env);
+    const { cs, en } = await getDailyTokensByLanguage(env);
+    const totalTokens = cs.length + en.length;
 
-    if (tokens.length === 0) {
+    if (totalTokens === 0) {
       console.log('No devices subscribed to daily notifications');
       return;
     }
 
     console.log(
-      `Sending daily notification to ${tokens.length} devices for article: ${topArticle.title}`
+      `Sending daily notification to ${totalTokens} devices (${cs.length} CZ, ${en.length} EN) for article: ${topArticle.id}`
     );
 
-    // Truncate description for notification body
-    const body = topArticle.description
-      ? topArticle.description.length > 150
-        ? topArticle.description.slice(0, 147) + '...'
-        : topArticle.description
-      : 'Tap to read the top positive story of the day.';
+    const messages: ExpoPushMessage[] = [];
 
-    // Build push messages
-    const messages: ExpoPushMessage[] = tokens.map((token) => ({
-      to: token,
-      title: topArticle.title,
-      body,
-      data: { articleId: topArticle.id },
-      sound: 'default' as const,
-    }));
+    for (const token of cs) {
+      messages.push({
+        to: token,
+        title: 'Ve světě se dějí dobré věci! 🎉',
+        body: 'Mrkni na nový článek a zlepši si den.',
+        data: { articleId: topArticle.id },
+        sound: 'default',
+      });
+    }
+
+    for (const token of en) {
+      messages.push({
+        to: token,
+        title: 'Good things are happening! 🎉',
+        body: 'Check out a new article and brighten your day.',
+        data: { articleId: topArticle.id },
+        sound: 'default',
+      });
+    }
 
     await sendPushBatch(messages);
 

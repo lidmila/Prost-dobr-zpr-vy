@@ -89,6 +89,9 @@ export function useArticles(): UseArticlesReturn {
 
   const refresh = useCallback(async () => {
     pageRef.current = 1;
+    setArticles([]);
+    setHasMore(true);
+    setError(null);
     await fetchArticles(1, false);
   }, [fetchArticles]);
 

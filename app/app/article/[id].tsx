@@ -16,8 +16,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { api, getImageProxyUrl, Article } from '../../services/api';
 import { offlineDb } from '../../services/database';
+import { storage } from '../../services/storage';
+import { useNotifications } from '../../hooks/useNotifications';
 import AgeGateModal from '../../components/AgeGateModal';
 import TranslateButton from '../../components/TranslateButton';
+import SummaryButton from '../../components/SummaryButton';
+import NotificationPrompt from '../../components/NotificationPrompt';
 import { Spacing, FontSize, BorderRadius } from '../../constants/theme';
 
 const STRIPE_PAYMENT_URL = 'https://buy.stripe.com/6oUaIU2oP3fW2cw000';
@@ -36,6 +40,10 @@ export default function ArticleDetailScreen() {
   const [translating, setTranslating] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [reported, setReported] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
+  const { registerForPushNotifications } = useNotifications();
 
   useEffect(() => {
     if (!id) return;
@@ -66,6 +74,20 @@ export default function ArticleDetailScreen() {
     }
   }, [article, ageConfirmed]);
 
+  useEffect(() => {
+    if (!article) return;
+    (async () => {
+      const count = await storage.incrementArticlesReadCount();
+      if (count === 1) {
+        const prompted = await storage.getNotificationPromptShown();
+        const enabled = await storage.getNotificationsEnabled();
+        if (!prompted && !enabled) {
+          setShowNotifPrompt(true);
+        }
+      }
+    })();
+  }, [article]);
+
   const toggleSave = useCallback(async () => {
     if (!article) return;
     if (isSaved) {
@@ -95,6 +117,20 @@ export default function ArticleDetailScreen() {
     }
   }, [article]);
 
+  const handleSummarize = useCallback(async () => {
+    if (!article || summary) return;
+    setSummarizing(true);
+    try {
+      const text = article.content || article.description || article.title;
+      const result = await api.summarize(text, article.language);
+      setSummary(result.summary);
+    } catch {
+      Alert.alert('Chyba shrnutí', 'Shrnutí se nezdařilo. Zkuste to prosím později.');
+    } finally {
+      setSummarizing(false);
+    }
+  }, [article, summary]);
+
   const openOriginal = useCallback(() => {
     if (article?.url) {
       Linking.openURL(article.url);
@@ -111,6 +147,24 @@ export default function ArticleDetailScreen() {
       // User cancelled or share failed — ignore
     }
   }, [article]);
+
+  const handleNotifAccept = useCallback(async () => {
+    setShowNotifPrompt(false);
+    await storage.setNotificationPromptShown(true);
+    try {
+      const token = await registerForPushNotifications();
+      if (token) {
+        await storage.setNotificationsEnabled(true);
+      }
+    } catch {
+      // Permission denied or failed
+    }
+  }, [registerForPushNotifications]);
+
+  const handleNotifDismiss = useCallback(async () => {
+    setShowNotifPrompt(false);
+    await storage.setNotificationPromptShown(true);
+  }, []);
 
   const reportArticle = useCallback(() => {
     if (!article) return;
@@ -213,13 +267,12 @@ export default function ArticleDetailScreen() {
           </View>
         </View>
 
-        {displayContent ? (
-          <Text style={[styles.contentText, { color: colors.text }]}>
-            {displayContent}
-          </Text>
-        ) : null}
-
         <View style={styles.actions}>
+          <SummaryButton
+            onPress={handleSummarize}
+            loading={summarizing}
+            summarized={!!summary}
+          />
           {article.language !== 'cs' ? (
             <TranslateButton
               onPress={handleTranslate}
@@ -281,6 +334,24 @@ export default function ArticleDetailScreen() {
           </Pressable>
         </View>
 
+        {summary ? (
+          <View style={[styles.summaryBox, { backgroundColor: colors.accentLight, borderColor: colors.accent }]}>
+            <View style={styles.summaryHeader}>
+              <Ionicons name="sparkles" size={16} color={colors.accent} />
+              <Text style={[styles.summaryHeaderText, { color: colors.accent }]}>AI shrnutí</Text>
+            </View>
+            <Text style={[styles.summaryText, { color: colors.text }]}>
+              {summary}
+            </Text>
+          </View>
+        ) : null}
+
+        {displayContent ? (
+          <Text style={[styles.contentText, { color: colors.text }]}>
+            {displayContent}
+          </Text>
+        ) : null}
+
         <Pressable
           style={({ pressed }) => [
             styles.supportBanner,
@@ -294,6 +365,12 @@ export default function ArticleDetailScreen() {
           </Text>
         </Pressable>
       </View>
+
+      <NotificationPrompt
+        visible={showNotifPrompt}
+        onAccept={handleNotifAccept}
+        onDismiss={handleNotifDismiss}
+      />
     </ScrollView>
   );
 }
@@ -356,6 +433,27 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: FontSize.xs,
     fontWeight: '600',
+  },
+  summaryBox: {
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  summaryHeaderText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  summaryText: {
+    fontSize: FontSize.md,
+    lineHeight: 24,
   },
   contentText: {
     fontSize: FontSize.md,

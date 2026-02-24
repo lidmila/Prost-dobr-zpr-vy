@@ -6,6 +6,8 @@ const KEYS = {
   SHOW_ADULT: 'show_adult',
   NOTIFICATION_PREF: 'notification_pref',
   NOTIFICATIONS_ENABLED: 'notifications_enabled',
+  NOTIFICATION_PROMPT_SHOWN: 'notification_prompt_shown',
+  ARTICLES_READ_COUNT: 'articles_read_count',
 } as const;
 
 export const storage = {
@@ -60,5 +62,23 @@ export const storage = {
   },
   async setNotificationsEnabled(enabled: boolean): Promise<void> {
     await AsyncStorage.setItem(KEYS.NOTIFICATIONS_ENABLED, enabled ? '1' : '0');
+  },
+
+  async getNotificationPromptShown(): Promise<boolean> {
+    return (await AsyncStorage.getItem(KEYS.NOTIFICATION_PROMPT_SHOWN)) === '1';
+  },
+  async setNotificationPromptShown(shown: boolean): Promise<void> {
+    await AsyncStorage.setItem(KEYS.NOTIFICATION_PROMPT_SHOWN, shown ? '1' : '0');
+  },
+
+  async getArticlesReadCount(): Promise<number> {
+    const val = await AsyncStorage.getItem(KEYS.ARTICLES_READ_COUNT);
+    return val ? parseInt(val, 10) : 0;
+  },
+  async incrementArticlesReadCount(): Promise<number> {
+    const count = await this.getArticlesReadCount();
+    const newCount = count + 1;
+    await AsyncStorage.setItem(KEYS.ARTICLES_READ_COUNT, String(newCount));
+    return newCount;
   },
 };

@@ -42,7 +42,7 @@ const FAQ_ITEMS = [
   {
     question: 'Je aplikace zdarma?',
     answer:
-      'Ano, aplikace je zcela zdarma. Pokud nás chcete podpořit, můžete tak učinit v Nastavení.',
+      'Ano, aplikace je zcela zdarma. Pokud nás chcete podpořit, můžete tak učinit v záložce Podpora.',
   },
   {
     question: 'Mohu nahlásit nevhodný článek?',
@@ -62,10 +62,35 @@ const FAQ_ITEMS = [
   {
     question: 'Z jakých zdrojů čerpáte?',
     answer:
-      'Čerpáme z cca 55 pečlivě vybraných zdrojů.\n\n' +
-      '🇨🇿 České zdroje: iROZHLAS.cz, Aktuálně.cz, ČeskéNoviny.cz, Novinky.cz, ČT24, Forbes.cz, Respekt, Refresher.cz, Seznam Zprávy, Vesmír, Kosmonautix.cz, Ekolist.cz, ScienceWorld.cz, Dobrý anděl, Pozitivní zprávy, CNN Prima NEWS, FN Motol, HZS ČR, AV ČR, Nadace Via, Nadace Terezy Maxové, Pomozte dětem, Diakonie ČCE\n\n' +
-      '🇸🇰 Slovenské zdroje: SME.sk, Aktuality.sk, Refresher.sk, SITA.sk, SportNet SME, Dobré noviny, Slovenský olympijský výbor, Športky, Nadácia Pontis, Človek v ohrození, Slovenský Červený kríž, Nadácia pre deti Slovenska, Centrum pre filantropiu\n\n' +
-      '🇬🇧 Anglické zdroje: Good News Network, Positive.News, Reasons to be Cheerful, BBC, The Guardian, Reuters, AP News, NPR, Nature News, Bright Side, TIME, UNEP',
+      'Čerpáme ze 178 pečlivě vybraných zdrojů.\n\n' +
+      '🇨🇿 České zdroje:\n' +
+      'Zpravodajství: iROZHLAS.cz, Aktuálně.cz, ČeskéNoviny.cz, Novinky.cz, ČT24, Forbes.cz, Seznam Zprávy, Respekt, Refresher.cz, CNN Prima NEWS, Deník N, A2larm, Heroine.cz\n' +
+      'Rozhlas: ČRo Vltava, ČRo Wave, ČRo Leonardo\n' +
+      'Pozitivní zprávy: Pozitivní zprávy, Dobrý anděl\n' +
+      'Věda a tech: Vesmír, Kosmonautix.cz, ScienceWorld.cz, AV ČR, Živě.cz, Root.cz, Lupa.cz, CzechCrunch, Vědavýzkum.cz, 21. století\n' +
+      'Ekologie: Ekolist.cz, Hnutí DUHA, Arnika, ČSOP, Nadace Partnerství, Flowee.cz\n' +
+      'Univerzity: Univerzita Karlova, Masarykova univerzita, ČVUT, VUT v Brně, UP Olomouc, ZČU Plzeň, Mendelova univerzita, Jihočeská univerzita, UTB Zlín\n' +
+      'Nemocnice: FN Motol, IKEM, FN Brno, FN Olomouc, VFN Praha\n' +
+      'NGO a charity: Člověk v tísni, ADRA ČR, Český červený kříž, Nadace ČEZ, Nadace O2, Konto Bariéry, SOS dětské vesničky, Charita ČR, Nadace Via, Nadace Terezy Maxové, Pomozte dětem, Diakonie ČCE, HZS ČR\n' +
+      'Kultura: Národní galerie Praha, Národní muzeum, Národní divadlo, Česká filharmonie\n' +
+      'Sport: Český olympijský výbor, Sport.cz, ČT Sport\n' +
+      'Města: Praha, Brno, Ostrava, Plzeň, Olomouc, Liberec\n' +
+      'Příroda: Zoo Praha, Zoo Brno, AOPK ČR, Správa jeskyní ČR\n' +
+      'Další: Transparency International CZ\n\n' +
+      '🇸🇰 Slovenské zdroje:\n' +
+      'Aktuality.sk, Refresher.sk, SITA.sk, Dobré noviny, Slovenský olympijský výbor, Športky, Nadácia Pontis, Človek v ohrození, Slovenský Červený kríž, Nadácia pre deti Slovenska, Centrum pre filantropiu\n\n' +
+      '🇬🇧 Anglické zdroje:\n' +
+      'Pozitivní zprávy: Good News Network, Positive.News, Reasons to be Cheerful, Bright Side, The Happy Broadcast, Daily Good, Sunny Skyz, Upworthy, Greater Good Berkeley\n' +
+      'Zpravodajství: BBC, The Guardian, Reuters, AP News, NPR, TIME, The Atlantic, Vox, ABC News Australia, CBC Canada, RTÉ Ireland, Al Jazeera, Deutsche Welle, France 24\n' +
+      'Věda: Nature News, Science AAAS, ScienceDaily, New Scientist, Scientific American, Phys.org, Live Science, EurekAlert!, The Conversation, Smithsonian Magazine\n' +
+      'Ekologie: UNEP, Mongabay, TreeHugger, Grist, Carbon Brief, Yale E360, WWF, IUCN, Conservation International, Earth.org\n' +
+      'Zdraví: WHO, Medical News Today, The Lancet, BMJ, NIH News, Harvard Health\n' +
+      'Technologie: Ars Technica, Wired, MIT Technology Review, The Verge, TechCrunch, Engadget, IEEE Spectrum\n' +
+      'NGO: UNICEF, ICRC, MSF, Oxfam, Gates Foundation, UN News, Global Citizen, Habitat for Humanity\n' +
+      'Příroda: National Geographic, The Dodo, World Animal Protection, Jane Goodall Institute, Oceana\n' +
+      'Vesmír: NASA, ESA, Space.com, SpaceNews, Astronomy.com, Sky & Telescope\n' +
+      'Vzdělávání: Edutopia, TED Blog, Open Culture\n' +
+      'Kultura: Artnet News, Hyperallergic, Colossal, Design Boom, Atlas Obscura',
   },
   {
     question: 'Proč jen dobrý zprávy? Není to jen únik před realitou?',
@@ -166,27 +191,6 @@ export default function FAQScreen() {
       {FAQ_ITEMS.map((item, index) => (
         <FAQItem key={index} item={item} colors={colors} />
       ))}
-
-      <View style={[styles.banner, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: Spacing.lg }]}>
-        <Ionicons name="megaphone-outline" size={28} color={colors.primary} />
-        <Text style={[styles.bannerSubtitle, { color: colors.text }]}>
-          Chcete tady být vidět?
-        </Text>
-        <Text style={[styles.bannerText, { color: colors.textSecondary }]}>
-          Vyskytují se u vás dobré zprávy, ale nejste u nás vidět? Napište nám,
-          ať vás přidáme!
-        </Text>
-        <Pressable
-          style={({ pressed }) => [
-            styles.bannerLink,
-            { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
-          ]}
-          onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}?subject=Chci být vidět v aplikaci`)}
-        >
-          <Ionicons name="mail-outline" size={16} color="#fff" />
-          <Text style={styles.bannerLinkText}>Kontaktovat</Text>
-        </Pressable>
-      </View>
     </ScrollView>
   );
 }

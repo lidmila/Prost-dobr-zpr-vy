@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   Switch,
   ScrollView,
   Pressable,
   Alert,
-  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -15,8 +15,6 @@ import { storage } from '../../services/storage';
 import { useNotifications } from '../../hooks/useNotifications';
 import { REGIONS } from '../../constants/categories';
 import { Spacing, FontSize, BorderRadius } from '../../constants/theme';
-
-const STRIPE_PAYMENT_URL = 'https://buy.stripe.com/6oUaIU2oP3fW2cw000';
 
 export default function SettingsScreen() {
   const { colors, isDark } = useTheme();
@@ -162,32 +160,26 @@ export default function SettingsScreen() {
 
       <View style={styles.about}>
         <Text style={[styles.aboutText, { color: colors.primary }]}>
-          Prostě dobrý zprávy v1.0.0
+          {preferredRegion === 'world' ? 'Simply Good News v1.0.0' : 'Prostě dobrý zprávy v1.0.0'}
         </Text>
         <Text style={[styles.aboutText, { color: colors.textMuted }]}>
-          Pozitivní zprávy z českých i světových zdrojů
+          {preferredRegion === 'world'
+            ? 'Positive news from Czech and world sources'
+            : 'Pozitivní zprávy z českých i světových zdrojů'}
         </Text>
       </View>
 
-      <View style={[styles.supportSection, { borderTopColor: colors.border }]}>
-        <Ionicons name="heart-outline" size={28} color={colors.primary} />
-        <Text style={[styles.supportTitle, { color: colors.text }]}>
-          Podpořte tento projekt
+      <View style={styles.credits}>
+        <Image
+          source={require('../../assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={[styles.creditsText, { color: colors.textSecondary }]}>
+          {preferredRegion === 'world'
+            ? 'This app was created by Lidmila Maršálková and Josef Rousek. Simply because. For a better day.'
+            : 'Aplikaci pro vás vytvořili Lidmila Maršálková a Josef Rousek. Prostě proto. Pro lepší den.'}
         </Text>
-        <Text style={[styles.supportDescription, { color: colors.textSecondary }]}>
-          Aplikace je zcela zdarma. Pokud se vám líbí, můžete nás podpořit
-          jednorázovým příspěvkem.
-        </Text>
-        <Pressable
-          style={({ pressed }) => [
-            styles.supportButton,
-            { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
-          ]}
-          onPress={() => Linking.openURL(STRIPE_PAYMENT_URL)}
-        >
-          <Ionicons name="heart" size={18} color="#fff" />
-          <Text style={styles.supportButtonText}>Podpořte nás</Text>
-        </Pressable>
       </View>
     </ScrollView>
   );
@@ -249,35 +241,21 @@ const styles = StyleSheet.create({
   aboutText: {
     fontSize: FontSize.sm,
   },
-  supportSection: {
+  credits: {
     marginTop: Spacing.lg,
-    paddingTop: Spacing.lg,
-    borderTopWidth: 1,
     alignItems: 'center',
-    gap: Spacing.sm,
+    paddingBottom: Spacing.xl,
   },
-  supportTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '600',
+  logo: {
+    width: 80,
+    height: 80,
+    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
-  supportDescription: {
+  creditsText: {
     fontSize: FontSize.sm,
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: Spacing.md,
-  },
-  supportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 4,
-    borderRadius: BorderRadius.lg,
-    marginTop: Spacing.xs,
-  },
-  supportButtonText: {
-    color: '#fff',
-    fontSize: FontSize.md,
-    fontWeight: '600',
   },
 });

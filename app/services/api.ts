@@ -88,10 +88,17 @@ export const api = {
     });
   },
 
-  registerPushToken(pushToken: string, notificationPref = 'daily') {
+  summarize(text: string, language: string) {
+    return request<{ summary: string }>('/summarize', {
+      method: 'POST',
+      body: JSON.stringify({ text, language }),
+    });
+  },
+
+  registerPushToken(pushToken: string, notificationPref = 'daily', language = 'cs') {
     return request<{ success: boolean }>('/notifications/register', {
       method: 'POST',
-      body: JSON.stringify({ pushToken, notificationPref }),
+      body: JSON.stringify({ pushToken, notificationPref, language }),
     });
   },
 

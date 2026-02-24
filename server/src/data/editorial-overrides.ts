@@ -4,6 +4,8 @@
  *
  * Each override = array of "trigger" stems (ALL must be present in text).
  * Matching is case-insensitive substring (text is already lowercased).
+ *
+ * NOTE: No political overrides allowed. The app has a strict zero-politics policy.
  */
 
 export interface EditorialOverride {
@@ -11,57 +13,25 @@ export interface EditorialOverride {
 }
 
 export const EDITORIAL_OVERRIDES: EditorialOverride[] = [
-  // ── Ukrajina: úspěchy, vítězství, osvobození, pomoc ──
-  { triggers: ['ukraj', 'vítěz'] },
-  { triggers: ['ukraj', 'vyhrál'] },
-  { triggers: ['ukraj', 'osvobod'] },
-  { triggers: ['ukraj', 'úspě'] },
-  { triggers: ['ukraj', 'postup'] },
-  { triggers: ['ukraj', 'pomoc'] },
-  { triggers: ['ukraj', 'podpor'] },
-  { triggers: ['ukraj', 'obran'] },
-  { triggers: ['ukraine', 'victor'] },
-  { triggers: ['ukraine', 'liberat'] },
-  { triggers: ['ukraine', 'advanc'] },
-  { triggers: ['ukraine', 'success'] },
-  { triggers: ['ukraine', 'aid'] },
-  { triggers: ['ukraine', 'support'] },
-  { triggers: ['ukraine', 'defen'] },
+  // ── Záchrana zvířat v kontextu nehod/katastrof ──
+  { triggers: ['zachránil', 'zvíř'] },
+  { triggers: ['zachránila', 'zvíř'] },
+  { triggers: ['rescued', 'animal'] },
+  { triggers: ['rescued', 'dog'] },
+  { triggers: ['rescued', 'cat'] },
+  { triggers: ['saved', 'animal'] },
 
-  // ── Rusko: porážky, ústup, izolace ──
-  { triggers: ['rus', 'porážk'] },
-  { triggers: ['rus', 'ústup'] },
-  { triggers: ['rus', 'prohrál'] },
-  { triggers: ['rus', 'izolac'] },
-  { triggers: ['russia', 'defeat'] },
-  { triggers: ['russia', 'retreat'] },
-  { triggers: ['russia', 'isolat'] },
+  // ── Překonání nemoci / postižení ──
+  { triggers: ['překonal', 'rakovi'] },
+  { triggers: ['překonala', 'rakovi'] },
+  { triggers: ['beat', 'cancer'] },
+  { triggers: ['survived', 'cancer'] },
+  { triggers: ['porazil', 'nemoc'] },
+  { triggers: ['porazila', 'nemoc'] },
 
-  // ── Petr Pavel: pozitivní zprávy ──
-  { triggers: ['petr pavel'] },
-  { triggers: ['pavel', 'prezident'] },
-
-  // ── ANO/Babiš: neúspěchy, odchod = dobrá zpráva ──
-  { triggers: ['babiš', 'prohrál'] },
-  { triggers: ['babiš', 'odchod'] },
-  { triggers: ['babiš', 'rezign'] },
-  { triggers: ['babiš', 'odsouzen'] },
-  { triggers: ['babiš', 'konec'] },
-  { triggers: ['hnutí ano', 'prohra'] },
-  { triggers: ['hnutí ano', 'ztráta'] },
-  { triggers: ['hnutí ano', 'pokles'] },
-
-  // ── SPD/Okamura: neúspěchy, odchod ──
-  { triggers: ['okamura', 'odchod'] },
-  { triggers: ['okamura', 'rezign'] },
-  { triggers: ['okamura', 'prohrál'] },
-  { triggers: ['okamura', 'konec'] },
-  { triggers: ['spd', 'konec'] },
-  { triggers: ['spd', 'prohra'] },
-
-  // ── Fico & spol.: pád, odsouzení ──
-  { triggers: ['fico', 'odsouzen'] },
-  { triggers: ['fico', 'rezign'] },
-  { triggers: ['fico', 'pád'] },
-  { triggers: ['fico', 'prohrál'] },
+  // ── Sbírky / fundraising (mohou obsahovat slovo "oběť" nebo "nemoc") ──
+  { triggers: ['sbírka', 'pomoc'] },
+  { triggers: ['sbírku', 'pomoc'] },
+  { triggers: ['fundrais', 'help'] },
+  { triggers: ['donated', 'help'] },
 ];

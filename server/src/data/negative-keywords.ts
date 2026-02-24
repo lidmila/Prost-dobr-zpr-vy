@@ -126,6 +126,12 @@ export const NEGATIVE_KEYWORDS_CS: string[] = [
   'opozice',
   'legislativa',
   'sněmovna',
+  'politická strana',
+  'zákon',
+  'novela',
+  'hlasování',
+  'referendum',
+  'eurokomisař',
 
   // Economics (auto-reject for wholesome filter)
   'inflace',
@@ -136,6 +142,14 @@ export const NEGATIVE_KEYWORDS_CS: string[] = [
   'deficit',
   'recese',
   'úroková',
+  'státní dluh',
+  'daňov',
+
+  // Commercial / PR (auto-reject)
+  'slevová akce',
+  'sleva %',
+  'nákupní tip',
+  'kde koupit',
 ];
 
 export const NEGATIVE_KEYWORDS_EN: string[] = [

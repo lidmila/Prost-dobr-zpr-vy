@@ -235,7 +235,24 @@
       "WebFetch(domain:www.kudyznudy.cz)",
       "WebFetch(domain:www.olympic.sk)",
       "WebFetch(domain:sportky.zoznam.sk)",
-      "WebFetch(domain:www.unep.org)"
+      "WebFetch(domain:www.unep.org)",
+      "Bash(ls:*)",
+      "WebFetch(domain:www.olympic.cz)",
+      "WebFetch(domain:leonardo.rozhlas.cz)",
+      "WebFetch(domain:www.dailygood.org)",
+      "WebFetch(domain:www.edutopia.org)",
+      "WebFetch(domain:www.flowee.cz)",
+      "WebFetch(domain:www.ikem.cz)",
+      "WebFetch(domain:www.ngprague.cz)",
+      "WebFetch(domain:www.plzen.eu)",
+      "WebFetch(domain:www.zoobrno.cz)",
+      "WebFetch(domain:wave.rozhlas.cz)",
+      "WebFetch(domain:www.iucn.org)",
+      "WebFetch(domain:www.oxfam.org)",
+      "WebFetch(domain:www.thehappybroadcast.com)",
+      "WebFetch(domain:e360.yale.edu)",
+      "WebFetch(domain:www.eurekalert.org)",
+      "WebFetch(domain:www.upworthy.com)"
     ]
   }
 }

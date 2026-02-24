@@ -1,9 +1,17 @@
-import { Stack } from 'expo-router';
+import { useCallback } from 'react';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '../hooks/useTheme';
+import { useNotifications } from '../hooks/useNotifications';
 
 export default function RootLayout() {
   const { colors, isDark } = useTheme();
+
+  const handleNotificationTap = useCallback((articleId: string) => {
+    router.push(`/article/${articleId}`);
+  }, []);
+
+  useNotifications({ onNotificationTap: handleNotificationTap });
 
   return (
     <>

@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { api } from '../services/api';
+import { storage } from '../services/storage';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -13,13 +14,17 @@ Notifications.setNotificationHandler({
   }),
 });
 
+interface UseNotificationsOptions {
+  onNotificationTap?: (articleId: string) => void;
+}
+
 interface UseNotificationsReturn {
   expoPushToken: string | null;
   notification: Notifications.Notification | null;
   registerForPushNotifications: () => Promise<string | null>;
 }
 
-export function useNotifications(): UseNotificationsReturn {
+export function useNotifications(options?: UseNotificationsOptions): UseNotificationsReturn {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
@@ -63,7 +68,9 @@ export function useNotifications(): UseNotificationsReturn {
     setExpoPushToken(token);
 
     try {
-      await api.registerPushToken(token);
+      const region = await storage.getPreferredRegion();
+      const language = region === 'world' ? 'en' : 'cs';
+      await api.registerPushToken(token, 'daily', language);
     } catch {
       // Registration with backend failed - token is still usable locally
     }
@@ -79,8 +86,11 @@ export function useNotifications(): UseNotificationsReturn {
     );
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      (_response) => {
-        // Handle notification tap - can be extended by consumers
+      (response) => {
+        const articleId = response.notification.request.content.data?.articleId as string | undefined;
+        if (articleId && options?.onNotificationTap) {
+          options.onNotificationTap(articleId);
+        }
       }
     );
 

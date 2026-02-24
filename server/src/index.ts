@@ -7,6 +7,7 @@ import { notificationsRoute } from './routes/notifications';
 import { authRoute } from './routes/auth';
 import { favoritesRoute } from './routes/favorites';
 import { imageProxyRoute } from './routes/image-proxy';
+import { summarizeRoute } from './routes/summarize';
 import { fetchAndProcessFeeds } from './services/feed-fetcher';
 import { sendDailyNotifications } from './services/notification-sender';
 import { HARD_BLOCK_STEMS, BLOCKED_URL_SEGMENTS } from './services/content-filter';
@@ -23,6 +24,7 @@ app.route('/api/notifications', notificationsRoute);
 app.route('/api/auth', authRoute);
 app.route('/api/favorites', favoritesRoute);
 app.route('/api/image-proxy', imageProxyRoute);
+app.route('/api/summarize', summarizeRoute);
 
 app.get('/api/admin/refresh-feeds', async (c) => {
   try {
@@ -69,10 +71,23 @@ app.get('/api/admin/cleanup', async (c) => {
       'automagazin.sk',
       'hriesnekrasna.sk',
       'zenamagazin.sk',
+      'sme.sk',
+      'sportnet.sme.sk',
     ];
 
     // Only use the NEW stems added in this update (not the old ones already enforced)
-    const newStems = [
+    const newStems: string[] = [
+      // Shocking / dark content
+      'šokující', 'šokujíc', 'drsná', 'drsný', 'drsné', 'brutální',
+      'závislost', 'závislos', 'bezdomovec', 'bezdomovců', 'bezdomovci',
+      // Financial / broker / commercial
+      'broker', 'brokeři', 'cfd ', 'forex',
+      'obchodování', 'trading', 'investování do',
+      // Travel / lifestyle tips
+      'dovolená', 'dovolenou', 'dovolenk',
+      'co patří do kufru', 'co zabalit',
+      'jak si užít', 'jak si užiť',
+      'na víkend s', 'víkend v ',
       'celebrity', 'celebrit',
       'influencer', 'influencerka',
       'červený koberec', 'červenom koberci',
@@ -123,6 +138,14 @@ app.get('/api/admin/cleanup', async (c) => {
       const res = await c.env.ARTICLES_DB.prepare(
         "DELETE FROM articles WHERE LOWER(title || ' ' || COALESCE(description, '')) LIKE ?"
       ).bind(pattern).run();
+      totalDeleted += res.meta?.changes ?? 0;
+    }
+
+    // 4. Delete articles in blocked categories
+    for (const cat of ['other', 'business']) {
+      const res = await c.env.ARTICLES_DB.prepare(
+        'DELETE FROM articles WHERE category = ?'
+      ).bind(cat).run();
       totalDeleted += res.meta?.changes ?? 0;
     }
 

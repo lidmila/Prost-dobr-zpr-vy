@@ -11,7 +11,6 @@ const POSITIVE_SOURCES = [
   'goodnewsnetwork.org',
   'positive.news',
   'reasonstobecheerful.world',
-  'dobrenoviny.sk',
   'pozitivni-zpravy.cz',
   'brightside.me',
 ];
@@ -19,7 +18,7 @@ const POSITIVE_SOURCES = [
 /**
  * Categories that are auto-rejected.
  */
-const BLOCKED_CATEGORIES: string[] = [];
+const BLOCKED_CATEGORIES: string[] = ['other', 'business'];
 
 /**
  * URL path segments that indicate irrelevant content sections.
@@ -107,6 +106,12 @@ export const HARD_BLOCK_STEMS = [
   'which should you buy', 'worth buying',
   'best deals', 'buying guide',
 
+  // ── Zdravotní clickbait ──
+  'poškodiť vaše', 'poškodit vaše', 'ničí vaše', 'škodí vášmu',
+  'môžu poškodiť', 'mohou poškodit',
+  'odborníci vymenovali', 'odborníci jmenovali',
+  'odborníci varuj', 'odborníky varuj',
+
   // ── Clickbait / lifehack / household tips / nostalgia bait ──
   'nevyhazujte', 'nevyhadzujte',
   'překvapí vás', 'prekvapí vás',
@@ -119,11 +124,19 @@ export const HARD_BLOCK_STEMS = [
   'možno nikdy',                      // SK nostalgia clickbait
   'asi nikdy',                        // CZ variant
 
-  // ── Celebrity / drby ──
+  // ── Celebrity / drby / bulvár ──
   'celebrity', 'celebrit',
   'influencer', 'influencerka',
   'červený koberec', 'červenom koberci',
   'přiznala', 'přiznal', 'prozradila', 'prozradil',
+  'rozchod', 'rozvod', 'po rozchode', 'po rozvode',
+  'žije idylu', 'žije dokonalú', 'žije dokonalou',
+  'má oči iba pre', 'má oči jen pro',
+  'speváčk', 'speváč', 'zpěvačk', 'zpěvák',
+  'herečk', 'herec ', 'hercov', 'herečin',
+  'hokejist', 'futbalist', 'fotbalist',
+  'žiadaný herec', 'žádaný herec',
+  'nesprávne otázky', 'nepotrebuje muža', 'nepotřebuje muže',
 
   // ── Horoskopy / ezoterika ──
   'horoskop', 'znamení zvěrokruh', 'tarot',
@@ -139,11 +152,16 @@ export const HARD_BLOCK_STEMS = [
   'jak se líčit', 'make-up trik', 'beauty tip',
   'fashion trend',
 
-  // ── Kurzovní / burzovní zprávy ──
+  // ── Kurzovní / burzovní / broker / investice ──
   'kurz koruny', 'kurz eura', 'kurz dolaru',
   'bitcoin', 'kryptomě', 'ethereum',
   'burzovní', 'akciový trh', 'stock market',
   'exchange rate',
+  'broker', 'brokeři', 'cfd ', 'forex',
+  'obchodování', 'trading', 'investování do',
+  'investiční', 'investičn', 'investor',
+  'finanční poradce', 'finanční poradenstv',
+  'hedge fund', 'portfolio',
 
   // ── Sponzorovaný / PR obsah ──
   'komerční sdělení', 'sponzorovaný článek', 'sponzorovaný obsah',
@@ -154,6 +172,23 @@ export const HARD_BLOCK_STEMS = [
   'chance liga',          // CZ football league score roundups
   'fortuna liga',         // SK football league
   'extraliga',            // CZ/SK hockey league
+
+  // ── Politici (jména) — nulová tolerance ──
+  'babiš', 'fiala', 'fico', 'soukup',
+  'okamura', 'petr pavel', 'pellegrini', 'čaputová',
+  'trump', 'biden', 'putin', 'zelenskyj', 'zelensky',
+
+  // ── Politické strany a instituce ──
+  'hnutí ano', 'hnutí spd', 'pirátsk', 'starost', 'spolu ',
+  'smer-sd', 'smer ', 'hlas-sd', 'progresívne slovensko',
+  'european commission', 'evropská komise', 'european parliament',
+  'nato ', 'eu summit', 'summit eu',
+
+  // ── Šokující / drsný / temný obsah ──
+  'šokující', 'šokujíc', 'drsná', 'drsný', 'drsné', 'brutální',
+  'závislost', 'závislos', 'alkoholi', 'narkomani', 'feťák',
+  'bezdomovec', 'bezdomovců', 'bezdomovci',
+  'shocking', 'disturbing', 'graphic content',
 
   // ── Názorové/komentářové sloupky ──
   'pod čarou', 'pod čiarou', 'komentář:', 'komentár:', 'glosa:', 'editorial:', 'názor:',
@@ -173,8 +208,19 @@ export const HARD_BLOCK_STEMS = [
   'výročí úmrtí', 'výročí smrti', 'vzpomínka na', 'vzpomínky na',
   'in memoriam', 'nekrolog', 'odešel', 'odešla',
 
+  // ── Cestování / tipy na výlet / lifestyle rady ──
+  'dovolená', 'dovolenou', 'dovolenk',
+  'co patří do kufru', 'co zabalit', 'co si vzít',
+  'jak si užít', 'jak si užiť',
+  'na víkend s', 'víkend v ',
+  'cestovatelský tip', 'cestovatelské tip',
+  'travel tip', 'packing list', 'travel guide',
+  'co navštívit', 'co vidět', 'co ochutnat',
+  'kam na dovolen', 'kam na výlet',
+  'den 1:', 'den 2:', 'den 3:',
+
   // ── Event listings / programy ──
-  'kam o víkendu', 'kam na výlet', 'program kina', 'program divadl',
+  'kam o víkendu', 'program kina', 'program divadl',
   'vstupné:', 'vstupné od',
 
   // ── Shopping / deals ──
@@ -227,54 +273,44 @@ async function classifyWithAI(
   description: string
 ): Promise<string | null> {
   try {
-    const prompt = `You are the FINAL GATE for "Prostě dobré zprávy" (Simply Good News), a Czech/Slovak positive news app. You must be VERY STRICT. When in doubt, REJECT.
+    const prompt = `You are the CHIEF EDITOR of "Prostě dobré zprávy" — a Czech/Slovak app showing ONLY super-positive news that makes people feel hope, inspiration, and faith in humanity. You are the FINAL GATE. Be EXTREMELY strict: if it's not 9/10 on the "warm heart" scale, REJECT.
 
-An article PASSES only if it fits one of these 7 categories AND has a CONCRETE POSITIVE OUTCOME (something already happened, not aspirational):
+An article PASSES only if it clearly fits one of these 5 categories AND describes something that ALREADY HAPPENED (not plans, hopes, or aspirations):
 
-CATEGORY 1 — WILDLIFE / NATURE CONSERVATION SUCCESS
-Species recovering, population growing, animal saved from extinction, reintroduction succeeding.
-Examples: "Giant panda no longer endangered", "Wolves return to Czech forests", "Sea turtle population rebounds 30%"
+CATEGORY 1 — KINDNESS & COMPASSION
+Random acts of kindness, people helping strangers without expecting anything in return, selfless donations, community solidarity with concrete outcomes.
+Examples: "Girl donates hair to children with cancer", "Nation raises 150M CZK for gene therapy for baby", "Strangers rebuild home for elderly woman"
 
-CATEGORY 2 — MEDICAL / SCIENCE BREAKTHROUGH
-Concrete discovery, cure, treatment, or scientific achievement with measurable results.
-Examples: "Czech scientists develop nanorings targeting cancer", "HIV prevention drug 99.9% effective", "New type of magnetism discovered"
+CATEGORY 2 — RESCUE & SALVATION
+Dramatic or touching rescues of human or animal lives. Firefighters, doctors, volunteers, ordinary people saving lives.
+Examples: "Firefighters rescue 160 pigs from burning barn", "Dog found alive after 3 weeks under rubble", "Stranger performs CPR and saves jogger's life"
 
-CATEGORY 3 — ACTS OF KINDNESS / HUMAN SOLIDARITY
-Real people helping others: donations, rescues, volunteer efforts, community fundraising with concrete outcomes.
-Examples: "Girl donates hair to cancer children", "Nation raises 150M CZK for gene therapy for baby", "Strangers help family rebuild"
+CATEGORY 3 — SCIENTIFIC BREAKTHROUGH
+Major discoveries in medicine (cancer treatment, paralysis cure, rare disease therapy) or planet-protecting technology. Must be concrete and groundbreaking.
+Examples: "New drug cures 95% of melanoma patients", "Czech scientists develop nanorings targeting tumors", "Paralyzed man walks again thanks to brain implant"
 
-CATEGORY 4 — ANIMAL HEARTWARMING STORIES
-Rescued animals, unlikely animal friendships, zoo births, firefighter animal rescues.
-Examples: "Lonely sheep gets lambs after rescue", "Baby monkey bonds with stuffed toy", "Firefighters rescue 160 pigs"
+CATEGORY 4 — PERSONAL TRIUMPH
+Stories of people who overcame hardship (disability, illness, poverty, trauma) and now help or inspire others. The human story must be central.
+Examples: "Blind climber summits Everest", "Former homeless man opens shelter for others", "Cancer survivor runs marathon to raise funds"
 
-CATEGORY 5 — CZECH/SLOVAK SPORTS VICTORIES
-ONLY actual achievements: medals, world records, championship wins, Olympic victories BY Czech or Slovak athletes. Must have narrative/story beyond bare scores.
-REJECT: non-CZ/SK sports, previews, aspirations, league tables, bare one-line results, 4th place+.
-PASS: "Czech curlers win Olympic match", "Slovak athlete wins European championship"
-FAIL: "Slavia beats Plzeň 2-1", "Czech team hopes for medal", "Premier League results"
+CATEGORY 5 — NATURE & ECOLOGY
+Return of extinct species, successful ocean cleanup, forest restoration, concrete biodiversity wins with measurable results.
+Examples: "Wolves return to Czech forests after 200 years", "Great Barrier Reef shows high coral recovery", "Country plants 1 billion trees ahead of schedule"
 
-CATEGORY 6 — ENVIRONMENT / BIODIVERSITY PROGRESS
-Concrete milestones with data: renewables surpassing fossil fuels, ozone healing, gene banks, pollution decreasing.
-Examples: "Renewables outperform coal globally", "Prague gene bank preserves 43,000 plant samples"
-
-CATEGORY 7 — COMMUNITY / CULTURAL ACHIEVEMENT
-UNESCO recognition, heritage restoration completed, new museums, community milestones.
-Examples: "Czech amateur theater gets UNESCO recognition", "Historic castle restored after 10 years"
-
-HARD REJECT — NEVER pass:
-- Neutral/informational articles (just facts, no uplift)
-- Plans, aspirations, previews ("hopes to", "wants to", "will compete")
-- Historical retrospectives, biographical profiles, nostalgia
-- Opinion columns, commentaries, editorials
-- Event listings, weekend programs, recipes, product reviews
-- Celebrity/influencer news
-- Political news of ANY kind
+ABSOLUTE REJECTION — NEVER pass these:
+- ANY mention of politics, politicians, political parties, government budgets, legislation
+- Commercial content: product reviews, shopping tips, PR articles, recipes, sales
+- Neutral/informational news: "New school opened", "Nice weather expected"
+- Controversial or divisive topics (religion, ideology) even if framed positively
+- Celebrity/influencer news, opinion columns, editorials
+- Sports scores, league tables, previews
+- Plans/aspirations ("hopes to", "wants to", "will compete")
+- Historical retrospectives, nostalgia, biographical profiles
+- Weather, crime, accidents, disasters, war
 - Economic/business/market reports
-- Weather, crime, accidents, disasters
-- Non-CZ/SK sports results
-- Articles merely "not negative" — must be ACTIVELY UPLIFTING
+- Articles that are merely "not negative" — must be ACTIVELY UPLIFTING
 
-THE KEY TEST: Would a reader feel a warm smile, a surge of hope, or a swell of pride? If not, REJECT.
+THE KEY TEST: Rate the article 1-10 on "warm heart" scale. Would a reader feel genuine emotion — tears of joy, hope for humanity, or deep inspiration? If it's below 9/10, REJECT. Prefer HUMAN STORIES over dry statistics.
 
 Respond with ONLY one word: POSITIVE or NEGATIVE.
 
@@ -374,8 +410,8 @@ export async function filterArticle(
     return result;
   }
 
-  // 7. Positive sources always pass (no AI needed)
-  if (isPositiveSource) {
+  // 7. Positive sources pass WITHOUT AI — but only for non-commercial categories
+  if (isPositiveSource && result.category !== 'business' && result.category !== 'other') {
     result.pass = true;
     result.positivityScore = 0.05;
     result.reason = 'positive source';

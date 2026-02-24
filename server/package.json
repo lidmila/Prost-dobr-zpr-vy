@@ -8,7 +8,8 @@
     "db:articles:migrate": "wrangler d1 execute articles-db --file=./src/db/schema-articles.sql",
     "db:internal:migrate": "wrangler d1 execute internal-db --file=./src/db/schema-internal.sql",
     "db:articles:migrate:local": "wrangler d1 execute articles-db --local --file=./src/db/schema-articles.sql",
-    "db:internal:migrate:local": "wrangler d1 execute internal-db --local --file=./src/db/schema-internal.sql"
+    "db:internal:migrate:local": "wrangler d1 execute internal-db --local --file=./src/db/schema-internal.sql",
+    "rss:health": "npx tsx scripts/rss-health.ts"
   },
   "dependencies": {
     "hono": "^4.4.0"
